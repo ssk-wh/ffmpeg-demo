@@ -1,0 +1,30 @@
+Source: ffmpeg-demo
+Section: admin
+Priority: optional
+Maintainer: ssk-wh <juchengshi@gmail.com>
+Build-Depends:
+ debhelper (>= 10),
+ debhelper-compat (= 10),
+ libx11-dev,
+ libavcodec-dev,
+ libavformat-dev,
+ libavutil-dev,
+ libswscale-dev
+Standards-Version: 4.5.0
+Homepage: hno
+Vcs-Browser: no
+Vcs-Git: no
+Rules-Requires-Root: no
+
+Package: ffmpeg-demo
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: A demo for ffmpeg library.
+ This package provides a demo application that uses the ffmpeg library.
+ It is intended for developers who want to see how to use ffmpeg in their
+ applications or for users who want to test ffmpeg functionality.
+ .
+ This demo includes basic encoding and decoding examples, as well as
+ simple video processing tasks.

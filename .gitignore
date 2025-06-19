@@ -1,0 +1,9 @@
+.vscode
+build
+output.mp4
+
+debian/.debhelper
+debian/debhelper-build-stamp
+debian/ffmpeg-demo.substvars
+debian/ffmpeg-demo/
+debian/files
