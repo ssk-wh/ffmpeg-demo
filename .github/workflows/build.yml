@@ -1,4 +1,5 @@
 name: Build, Package, and Upload
+
 on:
   push:
     branches:
@@ -9,29 +10,38 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64, armhf]  # 支持的架构列表
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-            sudo apt update
-            sudo apt build-dep .
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      - name: Build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run build in Docker container
         run: |
-            sudo apt-get install dpkg-dev
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          docker run --rm --privileged tonistiigi/binfmt --install ${{ matrix.arch }}
+          docker run --rm -v $PWD:/workspace -w /workspace -e DEBIAN_FRONTEND=noninteractive multiarch/debian-debootstrap:${{ matrix.arch }}-buster bash -c '
+            apt-get update && apt build-dep . -y && apt-get install -y dpkg-dev build-essential fakeroot
             dpkg-buildpackage -us -uc -nc -j$(nproc)
+            cp ../*.deb /workspace/
+          '
 
       - name: Set envs
         run: |
-            echo "WORKSPACE_PARENT_DIR=$(dirname "$GITHUB_WORKSPACE")" >> $GITHUB_ENV
-            echo "DEB_VERSION=$(dpkg-parsechangelog --show-field Version)" >> $GITHUB_ENV
-            echo "DEB_ARCH=$(dpkg --print-architecture)" >> $GITHUB_ENV
+          echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "DEB_VERSION=$(dpkg-parsechangelog --show-field Version)" >> $GITHUB_ENV
+          echo "DEB_ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-demo_${{ env.DEB_VERSION }}_${{ env.DEB_ARCH }}
-          path: ${{ env.WORKSPACE_PARENT_DIR }}/*.deb
+          name: ${{ env.REPO_NAME  }}_${{ env.DEB_VERSION }}_${{ env.DEB_ARCH }}.zip
+          path: ${{ github.workspace }}/*.deb
           compression-level: 0
