@@ -2,4 +2,4 @@
 DEB_DESTDIR=debian/ffmpeg-demo
 
 %:
-	dh $@
+	dh $@ --buildsystem=cmake

@@ -5,6 +5,8 @@ Maintainer: ssk-wh <juchengshi@gmail.com>
 Build-Depends:
  debhelper (>= 10),
  debhelper-compat (= 10),
+ cmake,
+ pkg-config,
  libx11-dev,
  libavcodec-dev,
  libavformat-dev,

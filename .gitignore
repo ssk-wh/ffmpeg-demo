@@ -1,5 +1,6 @@
 .vscode
 build
+obj-aarch64-linux-gnu/
 output.mp4
 
 debian/.debhelper

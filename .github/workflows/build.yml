@@ -3,7 +3,7 @@ name: Build, Package, and Upload
 on:
   push:
     branches:
-      - master
+      - CMakeLists.txt
     tags:
       - 'v*'
 
