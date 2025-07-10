@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     int ret;
     
     // 输出文件名
-    const char *filename = "output.mp4";
+    const char *filename = "desktop_output.mp4";
     
     // 初始化X11
     display = XOpenDisplay(NULL);

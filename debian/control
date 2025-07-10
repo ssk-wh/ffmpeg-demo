@@ -9,9 +9,11 @@ Build-Depends:
  pkg-config,
  libx11-dev,
  libavcodec-dev,
+ libavdevice-dev,
  libavformat-dev,
  libavutil-dev,
- libswscale-dev
+ libswscale-dev,
+ libswresample-dev
 Standards-Version: 4.5.0
 Homepage: hno
 Vcs-Browser: no
