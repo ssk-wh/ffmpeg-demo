@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define OUTPUT_FILE "output.aac"
+#define OUTPUT_FILE "output.wav"  // 改为WAV格式
 #define DURATION_SEC 8
 #define SILENCE_START_SEC 5
 #define SAMPLE_RATE 44100
@@ -108,16 +108,16 @@ int main(int argc, char *argv[]) {
            codecpar->sample_rate,
            codecpar->channels);
 
-    // 创建输出上下文
-    if ((ret = avformat_alloc_output_context2(&output_ctx, NULL, NULL, OUTPUT_FILE)) < 0) {
+    // 创建输出上下文 - 使用WAV格式
+    if ((ret = avformat_alloc_output_context2(&output_ctx, NULL, "wav", OUTPUT_FILE)) < 0) {
         print_error("无法创建输出文件", ret);
         goto cleanup;
     }
 
-    // 配置编码器
-    const AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
+    // 配置编码器 - 使用PCM编码器
+    const AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);
     if (!codec) {
-        fprintf(stderr, "找不到AAC编码器\n");
+        fprintf(stderr, "找不到PCM编码器\n");
         goto cleanup;
     }
 
@@ -130,10 +130,9 @@ int main(int argc, char *argv[]) {
     codec_ctx->sample_rate = SAMPLE_RATE;
     codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO;
     codec_ctx->channels = CHANNELS;
-    codec_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
-    codec_ctx->bit_rate = 128000;
+    codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;  // 16位有符号整型
+    codec_ctx->bit_rate = SAMPLE_RATE * CHANNELS * 16; // 16位深度
     codec_ctx->time_base = (AVRational){1, SAMPLE_RATE};
-    codec_ctx->frame_size = FRAME_SIZE;
 
     if (output_ctx->oformat->flags & AVFMT_GLOBALHEADER)
         codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -168,7 +167,7 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    // 初始化重采样
+    // 初始化重采样 - 输出格式改为S16
     SwrContext *swr_ctx = swr_alloc();
     if (!swr_ctx) {
         fprintf(stderr, "无法分配重采样上下文\n");
@@ -178,7 +177,7 @@ int main(int argc, char *argv[]) {
     av_opt_set_int(swr_ctx, "in_sample_rate", codecpar->sample_rate, 0);
     av_opt_set_int(swr_ctx, "out_sample_rate", SAMPLE_RATE, 0);
     av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", sample_fmt, 0);
-    av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_FLTP, 0);
+    av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);  // 改为16位有符号整型
     av_opt_set_int(swr_ctx, "in_channel_count", codecpar->channels, 0);
     av_opt_set_int(swr_ctx, "out_channel_count", CHANNELS, 0);
     av_opt_set_channel_layout(swr_ctx, "in_channel_layout", channel_layout, 0);
@@ -198,21 +197,25 @@ int main(int argc, char *argv[]) {
         goto cleanup;
     }
 
+    // 使用基于时间的循环控制
+    int64_t start_time = av_gettime();
+    int64_t duration_us = DURATION_SEC * 1000000;
+    int64_t silence_start_us = SILENCE_START_SEC * 1000000;
     int64_t samples_written = 0;
     int64_t total_samples = DURATION_SEC * SAMPLE_RATE;
-    int64_t silence_start_samples = SILENCE_START_SEC * SAMPLE_RATE;
 
     printf("开始录制 %d 秒音频...\n", DURATION_SEC);
     printf("将在 %.1f 秒后插入静音\n", (float)SILENCE_START_SEC);
 
-    while (samples_written < total_samples) {
+    while (av_gettime() - start_time < duration_us) {
+        int64_t elapsed_us = av_gettime() - start_time;
+        
         // 准备输出帧
-        frame->format = AV_SAMPLE_FMT_FLTP;
+        frame->format = AV_SAMPLE_FMT_S16;  // 改为16位有符号整型
         frame->channel_layout = AV_CH_LAYOUT_STEREO;
         frame->channels = CHANNELS;
         frame->sample_rate = SAMPLE_RATE;
         frame->nb_samples = FRAME_SIZE;
-        frame->pts = samples_written;
         
         // 分配输出帧内存
         if ((ret = av_frame_get_buffer(frame, 0)) < 0) {
@@ -220,11 +223,15 @@ int main(int argc, char *argv[]) {
             break;
         }
         
+        // 设置正确的PTS
+        frame->pts = av_rescale_q(elapsed_us, (AVRational){1, 1000000}, 
+                                 (AVRational){1, SAMPLE_RATE});
+        
         // 生成静音或捕获音频
-        if (samples_written >= silence_start_samples) {
-            // 设置静音
+        if (elapsed_us >= silence_start_us) {
+            // 设置静音 - 使用S16格式
             av_samples_set_silence(frame->data, 0, frame->nb_samples, 
-                                   frame->channels, (enum AVSampleFormat)frame->format);
+                                   frame->channels, AV_SAMPLE_FMT_S16);
         } else {
             // 读取音频帧
             if ((ret = av_read_frame(input_ctx, pkt)) < 0) {
@@ -267,12 +274,18 @@ int main(int argc, char *argv[]) {
             memcpy(in_frame->data[0], pkt->data, copy_bytes);
             av_packet_unref(pkt);
             
-            // 重采样
-            if ((ret = swr_convert(swr_ctx, 
+            // 重采样 - 输出格式改为S16
+            int actual_samples = swr_convert(swr_ctx, 
                                   frame->data, frame->nb_samples,
-                                  (const uint8_t**)in_frame->data, in_frame->nb_samples)) < 0) {
-                print_error("重采样错误", ret);
+                                  (const uint8_t**)in_frame->data, in_frame->nb_samples);
+            if (actual_samples < 0) {
+                print_error("重采样错误", actual_samples);
                 break;
+            }
+            
+            // 更新实际样本数
+            if (actual_samples > 0 && actual_samples < frame->nb_samples) {
+                frame->nb_samples = actual_samples;
             }
             
             // 释放输入帧
@@ -295,6 +308,7 @@ int main(int argc, char *argv[]) {
             }
 
             pkt->stream_index = out_stream->index;
+            // 正确转换时间戳
             av_packet_rescale_ts(pkt, codec_ctx->time_base, out_stream->time_base);
             if ((ret = av_interleaved_write_frame(output_ctx, pkt)) < 0) {
                 print_error("写入错误", ret);
@@ -305,7 +319,18 @@ int main(int argc, char *argv[]) {
         }
 
         samples_written += frame->nb_samples;
-        printf("\r进度: %.1f%%", (float)samples_written * 100.0f / total_samples);
+        
+        // 计算实际时间与预期时间的差异
+        int64_t expected_time = (samples_written * 1000000) / SAMPLE_RATE;
+        int64_t actual_time = elapsed_us;
+        int64_t time_diff = expected_time - actual_time;
+        
+        // 如果落后太多，跳过一些处理
+        if (time_diff > 10000) { // 超过10ms
+            usleep(time_diff);
+        }
+        
+        printf("\r进度: %.1f%%", (float)elapsed_us * 100.0f / duration_us);
         fflush(stdout);
         
         // 释放输出帧

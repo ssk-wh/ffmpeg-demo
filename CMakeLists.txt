@@ -12,6 +12,8 @@ set(CODEC_DETECTOR_BIN_NAME codec_detector)
 set(MIC_RECORDER_BIN_NAME mic_recorder)
 set(SPEAKER_RECORDER_BIN_NAME speaker_recorder)
 set(AUDIO_RECORDER_BIN_NAME audio_recorder)
+set(LIST_DEVICES_BIN_NAME list_devices)
+set(RGB_TO_YUV_BIN_NAME rgb_to_yuv)
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX /usr)
@@ -55,6 +57,16 @@ add_executable(${SPEAKER_RECORDER_BIN_NAME}
 # 音频录制
 add_executable(${AUDIO_RECORDER_BIN_NAME}
     5_audio_recorder.c
+    )
+
+# 音视频设备罗列
+add_executable(${LIST_DEVICES_BIN_NAME}
+    6_list_devices.c
+    )
+
+# rgb 图像转 yuv420p
+add_executable(${RGB_TO_YUV_BIN_NAME}
+    7_rgb_to_yuv.c
     )
 
 target_link_libraries(${DESKTOP_RECORDER_BIN_NAME}
@@ -105,9 +117,25 @@ target_link_libraries(${AUDIO_RECORDER_BIN_NAME}
     PkgConfig::SWRESAMPLE
     )
 
+target_link_libraries(${LIST_DEVICES_BIN_NAME}
+    PkgConfig::AVCODEC
+    PkgConfig::AVDEVICE
+    PkgConfig::AVFORMAT
+    PkgConfig::AVUTIL
+    )
+
+target_link_libraries(${RGB_TO_YUV_BIN_NAME}
+    PkgConfig::AVCODEC
+    PkgConfig::AVDEVICE
+    PkgConfig::AVFORMAT
+    PkgConfig::AVUTIL
+    )
+
 install(TARGETS ${DESKTOP_RECORDER_BIN_NAME} DESTINATION bin)
 install(TARGETS ${CAMERA_RECORDER_BIN_NAME} DESTINATION bin)
 install(TARGETS ${CODEC_DETECTOR_BIN_NAME} DESTINATION bin)
 install(TARGETS ${MIC_RECORDER_BIN_NAME} DESTINATION bin)
 install(TARGETS ${SPEAKER_RECORDER_BIN_NAME} DESTINATION bin)
 install(TARGETS ${AUDIO_RECORDER_BIN_NAME} DESTINATION bin)
+install(TARGETS ${LIST_DEVICES_BIN_NAME} DESTINATION bin)
+install(TARGETS ${RGB_TO_YUV_BIN_NAME} DESTINATION bin)
