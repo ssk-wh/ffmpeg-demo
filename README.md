@@ -26,6 +26,14 @@ camera_recorder：运行 camera_recorder.c 编译后的主程序,用于摄像头
 audio_recorder：运行 audio_recorder.c 编译后的主程序，用于音频内容录制。
 detector：用于检测视频文件的编码格式。
 
+使用 conan 编译
+``` bash
+conan profile detect --force
+conan install . --build=missing -s build_type=Release
+cmake --preset conan-default
+cmake --build --preset conan-release
+```
+
 
 # 运行
 

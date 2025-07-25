@@ -3,6 +3,7 @@ build
 obj-aarch64-linux-gnu/
 output.mp4
 CMakeLists.txt.user
+CmakeUserPresets.json
 
 debian/.debhelper
 debian/debhelper-build-stamp
