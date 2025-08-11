@@ -10,8 +10,9 @@
  #include <stdio.h>
  #include <stdlib.h>
  
- // 如需使用 libyuv，请取消下一行注释并安装 libyuv
+ #ifdef USE_LIBYUV
  #include <libyuv.h>
+ #endif
  
 
  #define W 64
@@ -79,7 +80,7 @@
      fwrite(v, 1, HALF_W * HALF_H, fp);
      fclose(fp);
  
-     /* ===== 以下为新增：使用 libyuv 做水平镜像 ===== */
+     /* ===== 使用 libyuv 做水平镜像 ===== */
  #if defined(__has_include) && __has_include(<libyuv.h>)
      uint8_t *y_flip = malloc(W * H);
      uint8_t *u_flip = malloc(HALF_W * HALF_H);
