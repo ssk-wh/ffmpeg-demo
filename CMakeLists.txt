@@ -127,11 +127,25 @@ target_link_libraries(${LIST_DEVICES_BIN_NAME}
     PkgConfig::AVUTIL
     )
 
+find_path(LIBYUV_INCLUDE_DIR
+          NAMES libyuv.h
+          PATHS /usr/local/include)
+
+find_library(LIBYUV_LIBRARY
+             NAMES yuv libyuv
+             PATHS /usr/local/lib)
+
+if(NOT LIBYUV_INCLUDE_DIR OR NOT LIBYUV_LIBRARY)
+    message(FATAL_ERROR "libyuv not found, please install it first")
+endif()
+
+target_include_directories(${RGB_TO_YUV_BIN_NAME} PRIVATE ${LIBYUV_INCLUDE_DIR})
 target_link_libraries(${RGB_TO_YUV_BIN_NAME}
     PkgConfig::AVCODEC
     PkgConfig::AVDEVICE
     PkgConfig::AVFORMAT
     PkgConfig::AVUTIL
+    ${LIBYUV_LIBRARY}
     )
 
 install(TARGETS ${DESKTOP_RECORDER_BIN_NAME} DESTINATION bin)
