@@ -1,17 +1,20 @@
 cmake_minimum_required(VERSION 3.13)
 
+project(ffmpeg-demo LANGUAGES CXX C)
+
 if(WIN32)
+    set(BUILD_ON_WINDOWS ON)
     add_compile_definitions(BUILD_ON_WINDOWS)
     message("Build on windows")
 elseif(APPLE)
+    set(BUILD_ON_MAC ON)
     add_compile_definitions(BUILD_ON_MAC)
     message(FATAL_ERROR "Build on mac, not supported now.")
 elseif(UNIX)
+    set(BUILD_ON_LINUX ON)
     add_compile_definitions(BUILD_ON_LINUX)
     message("Build on linux")
 endif()
-
-project(ffmpeg-demo LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
